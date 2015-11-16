@@ -45,7 +45,7 @@ function term(div, width, height, text_size, keypress)
     var resizing = 0;
 
     var cursor = 0;
-
+    
     div.bind('paste', function (event)
     {
         var data = event.originalEvent.clipboardData.getData('text');
@@ -69,6 +69,10 @@ function term(div, width, height, text_size, keypress)
     {
         if (!event.ctrlKey)
         {
+            if (event.keyCode === 8)
+            {
+                event.preventDefault();
+            }
             var keycode = event.keyCode ? event.keyCode : event.which;
             keypress(keycode);
         }
