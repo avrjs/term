@@ -1,18 +1,18 @@
 /*
  term.js - A 'character by character' javascript terminal. Made for avrjs
-
+ 
  Copyright (C) 2015  Julian Ingram
-
+ 
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
  (at your option) any later version.
-
+ 
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
-
+ 
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -23,8 +23,8 @@ function term(div, width, height, text_size, keypress)
 {
     var padding = 6;
     div.css({
-	"width": width,
-	"height": height,
+        "width": width,
+        "height": height,
         "font-family": "'Courier New', Courier, monospace",
         "background-color": "#222222",
         "color": "#DADADA",
@@ -44,32 +44,34 @@ function term(div, width, height, text_size, keypress)
 
     var resizing = 0;
 
+    var cursor = 0;
+
     div.bind('paste', function (event)
     {
         var data = event.originalEvent.clipboardData.getData('text');
-	console.log(data);
-	
-	var i = 0;
-	function write_to_term()
-	{
-	    if (i !== data.length)
-	    {
-		keypress(data.charCodeAt(i));
-		++i;
-		setTimeout(write_to_term, 12);
-	    }
-	};
-	write_to_term();
+        console.log(data);
+
+        var i = 0;
+        function write_to_term()
+        {
+            if (i !== data.length)
+            {
+                keypress(data.charCodeAt(i));
+                ++i;
+                setTimeout(write_to_term, 12);
+            }
+        }
+        ;
+        write_to_term();
     });
 
     div.keypress(function (event)
     {
-	if (!event.ctrlKey)
-	{
-	    var keycode = event.keyCode ? event.keyCode : event.which;
-            console.log("keycode: ", keycode);
-	    keypress(keycode);
-	}
+        if (!event.ctrlKey)
+        {
+            var keycode = event.keyCode ? event.keyCode : event.which;
+            keypress(keycode);
+        }
     });
 
     newline();
@@ -97,7 +99,7 @@ function term(div, width, height, text_size, keypress)
         line.remove();
 
         return height;
-    }    
+    }
 
     function reflow()
     {
@@ -110,9 +112,12 @@ function term(div, width, height, text_size, keypress)
             if (line_divs[line_div_itt] !== undefined)
             {
                 text += line_divs[line_div_itt].text();
+                text += "\r\n";
             }
             line_div_itt = (line_div_itt + 1) % linebuffer_size;
         } while (line_div_itt !== lim);
+        text = text.substring(0, text.length - 2); // remove the last \r\n
+        
         clear();
         // re-write text
         for (var i = 0; i < text.length; ++i)
@@ -129,7 +134,10 @@ function term(div, width, height, text_size, keypress)
         if (resizing === 0)
         {
             resizing = 1;
-            setTimeout(function(){resizing = 0; reflow();}, 100);
+            setTimeout(function () {
+                resizing = 0;
+                reflow();
+            }, 100);
         }
     }
 
@@ -158,35 +166,32 @@ function term(div, width, height, text_size, keypress)
     function write(chr)
     {
         var line = line_divs[line_div_itt];
-        line.append(String.fromCharCode(chr));
-
-        if (line.height() > line_height)
+        var line_text = line.text();
+        //console.log(String.fromCharCode(chr) + " cursor: " + cursor);
+        
+        switch (chr)
         {
-            // find last space
-            var line_text = line.text();
-            var ls = line_text.lastIndexOf(" ") + 1;
-            if ((ls === 0) || (chr === 0x20))
-            { // no spaces
-                // remove overflowing character
-                line.text(line_text.slice(0, -1));
-                // put it on the next line
+            case 0x0A: // line feed
                 newline();
-                line_divs[line_div_itt].append(String.fromCharCode(chr));
-            }
-            else
-            {
-                // remove overflowing characters
-                line.text(line_text.substring(0, ls));
-                // put them on the next line
-                newline();
-                line_divs[line_div_itt].append(line_text.substring(ls));
-            }
+                for (var i = 0; i < cursor; ++i)
+                {
+                    line.append(" ");
+                }
+                break;
+            case 0x0D: // carriage return
+                cursor = 0;
+                break;
+            case 0x08: // backspace
+                if (cursor !== 0)
+                {
+                    --cursor;
+                }
+                break;
+            default:
+                line.text(line_text.substr(0, cursor) + String.fromCharCode(chr) + line_text.substr(cursor + 1));
+                ++cursor;
+                break;
         }
-        else if (chr === 0x0A) // line feed, ideally put this at the bottom
-        {
-            newline();
-        }
-
         div.scrollTop(div[0].scrollHeight); // keep the scrollbar at the bottom
     }
 
@@ -202,5 +207,5 @@ function term(div, width, height, text_size, keypress)
         write: write,
         clear: clear,
         resize: resize
-    }
+    };
 }
