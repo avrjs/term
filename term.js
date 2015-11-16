@@ -65,17 +65,27 @@ function term(div, width, height, text_size, keypress)
         write_to_term();
     });
 
+    div.keydown(function (event)
+    {
+	var keycode = event.keyCode ? event.keyCode : event.which;
+        if (keycode === 8)
+        {
+	    event.preventDefault();
+	    keypress(keycode);
+	}
+    });
+
     div.keypress(function (event)
     {
         if (!event.ctrlKey)
         {
-            if (event.keyCode === 8)
+	    var keycode = event.keyCode ? event.keyCode : event.which;
+            keypress(keycode);
+	    if (keycode === 8)
             {
                 event.preventDefault();
-            }
-            var keycode = event.keyCode ? event.keyCode : event.which;
-            keypress(keycode);
-        }
+	    }
+	}
     });
 
     newline();
