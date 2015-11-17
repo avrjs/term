@@ -23,8 +23,8 @@ function term(div, width, height, text_size, keypress)
 {
     var padding = 6;
     div.css({
-        "width": width,
-        "height": height,
+        "width": width - (padding * 2),
+        "height": height - (padding * 2),
         "font-family": "'Courier New', Courier, monospace",
         "background-color": "#222222",
         "color": "#DADADA",
