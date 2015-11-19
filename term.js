@@ -46,6 +46,9 @@ function term(div, width, height, text_size, keypress)
 
     var cursor = 0;
     
+    var cursor_element = undefined;
+    var eol_element = undefined;
+
     div.bind('paste', function (event)
     {
         var data = event.originalEvent.clipboardData.getData('text');
@@ -117,6 +120,12 @@ function term(div, width, height, text_size, keypress)
 
     function reflow()
     {
+	// remove eol_element
+        if (eol_element !== undefined)
+        {
+            eol_element.remove();
+        }
+
         // recored all text in terminal
         var text = "";
         line_div_itt = (line_div_itt + 1) % linebuffer_size;
@@ -162,6 +171,16 @@ function term(div, width, height, text_size, keypress)
 
     function newline()
     {
+        // remove cursor
+        if (eol_element !== undefined)
+        {
+            eol_element.remove();
+        }
+	if (cursor_element !== undefined)
+	{
+	    cursor_element.css("text-decoration", "none");
+	}
+
         // increment the itterator
         line_div_itt = (line_div_itt + 1) % linebuffer_size;
 
@@ -175,36 +194,59 @@ function term(div, width, height, text_size, keypress)
         var line_div = $('<div id="line_' + line_div_itt + '" style="min-height:' + line_height + 'px; white-space:pre-wrap; word-wrap:break-word; clear:left;"></div>');
         line_divs[line_div_itt] = line_div;
         div.append(line_div);
+        
+        // add eol/cursorelement
+        eol_element = $('<span id="term_eol" style="text-decoration:underline;">&nbsp;</span>');
+        line_div.append(eol_element);
+	cursor_element = eol_element;
     }
 
     function write(chr)
     {
         var line = line_divs[line_div_itt];
         var line_text = line.text();
-        //console.log(String.fromCharCode(chr) + " cursor: " + cursor);
+        
+        //var cursor_element = line.children().eq(cursor);
         
         switch (chr)
         {
-            case 0x0A: // line feed
-                newline();
-                for (var i = 0; i < cursor; ++i)
-                {
-                    line.append(" ");
-                }
-                break;
-            case 0x0D: // carriage return
-                cursor = 0;
-                break;
-            case 0x08: // backspace
-                if (cursor !== 0)
-                {
-                    --cursor;
-                }
-                break;
-            default:
-                line.text(line_text.substr(0, cursor) + String.fromCharCode(chr) + line_text.substr(cursor + 1));
-                ++cursor;
-                break;
+        case 0x0A: // line feed
+            newline();
+	    line = line_divs[line_div_itt];
+            for (var i = 1; i < cursor; ++i)
+            {
+		var ws_element = $('<span>&nbsp;</span>');
+		line.prepend(ws_element);
+            }
+            break;
+        case 0x0D: // carriage return
+	    cursor_element.css("text-decoration", "none");
+            cursor_element = line.children().first();
+            cursor_element.css("text-decoration", "underline");
+	    cursor = 0;
+	    break;
+        case 0x08: // backspace
+            if (cursor !== 0)
+            {
+		cursor_element.css("text-decoration", "none");
+                --cursor;
+		cursor_element = cursor_element.prev();
+		cursor_element.css("text-decoration", "underline");
+            }
+            break;
+        default:
+            var char_element = $('<span>' + String.fromCharCode(chr) + '</span>');
+            cursor_element.before(char_element);
+
+            // overwrite
+	    if (!cursor_element.is(eol_element))
+	    {
+		cursor_element.remove();
+		cursor_element = char_element.next();
+		cursor_element.css("text-decoration", "underline");
+	    }
+            ++cursor;
+            break;
         }
         div.scrollTop(div[0].scrollHeight); // keep the scrollbar at the bottom
     }
