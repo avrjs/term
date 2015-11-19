@@ -94,7 +94,6 @@ function term(div, width, height, text_size, keypress)
 
     newline();
 
-
     function get_line_height()
     {
         var line = $('<div style="visibility:hidden;">Test</div>');
@@ -130,9 +129,9 @@ function term(div, width, height, text_size, keypress)
         text = text.substring(0, text.length - 2); // remove the last \r\n
         
         clear();
-        // re-write text
+
         for (var i = 0; i < text.length; ++i)
-        {
+        { // re-write text
             write(text.charCodeAt(i));
         }
     }
@@ -194,8 +193,6 @@ function term(div, width, height, text_size, keypress)
         var line = line_divs[line_div_itt];
         var line_text = line.text();
         
-        //var cursor_element = line.children().eq(cursor);
-        
         switch (chr)
         {
         case 0x0A: // line feed
@@ -223,9 +220,8 @@ function term(div, width, height, text_size, keypress)
         default:
             var char_element = $('<span>' + String.fromCharCode(chr) + '</span>');
             cursor_element.before(char_element);
-            // overwrite
 	    if (!cursor_element.is(eol_element))
-	    {
+	    { // overwrite
 		cursor_element.remove();
 		cursor_element = char_element.next();
 		cursor_element.css("text-decoration", "underline");
