@@ -1,5 +1,5 @@
 /*
- term.js - A 'character by character' javascript terminal. Made for avrjs
+ term.js - A 'character by character' javascript terminal. Made for AVRjs.
  
  Copyright (C) 2015  Julian Ingram
  
@@ -35,16 +35,17 @@ function term(div, width, height, text_size, keypress)
     });
     div.prop("tabindex", "1");
 
+    // hack to make firefox enable paste event on non contenteditable div
+    var ff_paste_div = $('<div id="ff_paste_hack" contenteditable style="display:none"></div>');
+    div.before(ff_paste_div);
+
     var line_div_itt = 0;
     var line_divs = [];
     var linebuffer_size = 48;
 
-    var scrollbar_width = get_scrollbar_width();
     var line_height = get_line_height();
 
     var resizing = 0;
-
-    var cursor = 0;
     
     var cursor_element = undefined;
     var eol_element = undefined;
@@ -93,19 +94,6 @@ function term(div, width, height, text_size, keypress)
 
     newline();
 
-    function get_scrollbar_width()
-    {
-        var inner = $('<div style="width: 100%; height:200px;"></div>');
-        var outer = $('<div style="width:200px; height:150px; position: absolute; top: 0; left: 0; visibility: hidden; overflow:hidden;"></div>').append(inner);
-
-        $('body').append(outer[0]);
-        var width1 = inner[0].offsetWidth;
-        outer.css('overflow', 'scroll');
-        var width2 = outer[0].clientWidth;
-        outer.remove();
-
-        return (width1 - width2);
-    }
 
     function get_line_height()
     {
@@ -213,7 +201,7 @@ function term(div, width, height, text_size, keypress)
         case 0x0A: // line feed
             newline();
 	    line = line_divs[line_div_itt];
-            for (var i = 1; i < cursor; ++i)
+            for (var i = 1; i < line.children().index(cursor_element); ++i)
             {
 		var ws_element = $('<span>&nbsp;</span>');
 		line.prepend(ws_element);
@@ -223,13 +211,11 @@ function term(div, width, height, text_size, keypress)
 	    cursor_element.css("text-decoration", "none");
             cursor_element = line.children().first();
             cursor_element.css("text-decoration", "underline");
-	    cursor = 0;
 	    break;
         case 0x08: // backspace
-            if (cursor !== 0)
+            if (line.children().index(cursor_element) !== 0)
             {
 		cursor_element.css("text-decoration", "none");
-                --cursor;
 		cursor_element = cursor_element.prev();
 		cursor_element.css("text-decoration", "underline");
             }
@@ -237,7 +223,6 @@ function term(div, width, height, text_size, keypress)
         default:
             var char_element = $('<span>' + String.fromCharCode(chr) + '</span>');
             cursor_element.before(char_element);
-
             // overwrite
 	    if (!cursor_element.is(eol_element))
 	    {
@@ -245,7 +230,6 @@ function term(div, width, height, text_size, keypress)
 		cursor_element = char_element.next();
 		cursor_element.css("text-decoration", "underline");
 	    }
-            ++cursor;
             break;
         }
         div.scrollTop(div[0].scrollHeight); // keep the scrollbar at the bottom
