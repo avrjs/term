@@ -1,18 +1,18 @@
 /*
  term.js - A 'character by character' javascript terminal. Made for AVRjs.
- 
+
  Copyright (C) 2015  Julian Ingram
- 
+
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
  (at your option) any later version.
- 
+
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -41,12 +41,12 @@ function term(div, width, height, text_size, keypress)
 
     var line_div_itt = 0;
     var line_divs = [];
-    var linebuffer_size = 48;
+    var linebuffer_size = 64;
 
     var line_height = get_line_height();
 
     var resizing = 0;
-    
+
     var cursor_element = undefined;
     var eol_element = undefined;
 
@@ -71,25 +71,25 @@ function term(div, width, height, text_size, keypress)
 
     div.keydown(function (event)
     {
-	var keycode = event.keyCode ? event.keyCode : event.which;
-        if (keycode === 8)
-        {
-	    event.preventDefault();
-	    keypress(keycode);
-	}
+	     var keycode = event.keyCode ? event.keyCode : event.which;
+       if (keycode === 8)
+       {
+	        event.preventDefault();
+	        keypress(keycode);
+	     }
     });
 
     div.keypress(function (event)
     {
-        if (!event.ctrlKey)
-        {
-	    var keycode = event.keyCode ? event.keyCode : event.which;
-            keypress(keycode);
-	    if (keycode === 8)
-            {
-                event.preventDefault();
-	    }
-	}
+       if (!event.ctrlKey)
+       {
+	         var keycode = event.keyCode ? event.keyCode : event.which;
+           keypress(keycode);
+	         if (keycode === 8)
+           {
+               event.preventDefault();
+	         }
+	     }
     });
 
     newline();
@@ -127,7 +127,7 @@ function term(div, width, height, text_size, keypress)
             line_div_itt = (line_div_itt + 1) % linebuffer_size;
         } while (line_div_itt !== lim);
         text = text.substring(0, text.length - 2); // remove the last \r\n
-        
+
         clear();
 
         for (var i = 0; i < text.length; ++i)
@@ -181,7 +181,7 @@ function term(div, width, height, text_size, keypress)
         var line_div = $('<div id="line_' + line_div_itt + '" style="min-height:' + line_height + 'px; white-space:pre-wrap; word-wrap:break-word; clear:left;"></div>');
         line_divs[line_div_itt] = line_div;
         div.append(line_div);
-        
+
         // add eol/cursorelement
         eol_element = $('<span id="term_eol" style="text-decoration:underline;">&nbsp;</span>');
         line_div.append(eol_element);
@@ -192,7 +192,7 @@ function term(div, width, height, text_size, keypress)
     {
         var line = line_divs[line_div_itt];
         var line_text = line.text();
-        
+
         switch (chr)
         {
         case 0x0A: // line feed
