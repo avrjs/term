@@ -203,6 +203,7 @@ function term(div, width, height, text_size, keypress)
 		var ws_element = $('<span>&nbsp;</span>');
 		line.prepend(ws_element);
             }
+            div.scrollTop(div[0].scrollHeight); // keep the scrollbar at the bottom
             break;
         case 0x0D: // carriage return
 	    cursor_element.css("text-decoration", "none");
@@ -228,7 +229,6 @@ function term(div, width, height, text_size, keypress)
 	    }
             break;
         }
-        div.scrollTop(div[0].scrollHeight); // keep the scrollbar at the bottom
     }
 
     function clear()
