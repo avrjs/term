@@ -1,7 +1,7 @@
 /*
  term.js - A 'character by character' javascript terminal. Made for AVRjs.
 
- Copyright (C) 2015  Julian Ingram
+ Copyright (C) 2015-2018  Julian Ingram
 
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -19,25 +19,21 @@
 
 "use strict";
 
-function term(div, width, height, text_size, keypress)
-{
-    var padding = 6;
-    div.css({
-        "width": width - (padding * 2),
-        "height": height - (padding * 2),
-        "font-family": "'Courier New', Courier, monospace",
-        "background-color": "#222222",
-        "color": "#DADADA",
-        "font-size": text_size.toString(10) + "pt",
-        "white-space": "nowrap",
-        "overflow-y": "scroll",
-        "padding": padding + "px"
-    });
-    div.prop("tabindex", "1");
+const TERM_DEF_CONFIG = {
+    "width": "600px",
+    "height": "360px",
+    "font_size": "1rem",
+    "padding": "6px",
+    "tabindex": 0
+}
 
+function term(div, keypress) {
     // hack to make firefox enable paste event on non contenteditable div
-    var ff_paste_div = $('<div id="ff_paste_hack" contenteditable style="display:none"></div>');
-    div.before(ff_paste_div);
+    /*var ff_paste_div = document.createElement("div");
+    ff_paste_div.id = "ff_paste_hack";
+    ff_paste_div.contentEditable = "True";
+    ff_paste_div.style.display = "none";
+    div.parentNode.insertBefore(ff_paste_div, div);*/
 
     var line_div_itt = 0;
     var line_divs = [];
@@ -50,56 +46,62 @@ function term(div, width, height, text_size, keypress)
     var cursor_element = undefined;
     var eol_element = undefined;
 
-    div.bind('paste', function (event)
-    {
-        var data = event.originalEvent.clipboardData.getData('text');
-        console.log(data);
+    div.addEventListener("paste", function(event) {
+        var clipboard_data = event.clipboardData || window.clipboardData;
+        var data = clipboard_data.getData('Text');
+
+        event.preventDefault();
+        event.stopPropagation();
 
         var i = 0;
-        function write_to_term()
-        {
-            if (i !== data.length)
-            {
+        function write_to_term() {
+            if (i !== data.length) {
                 keypress(data.charCodeAt(i));
                 ++i;
                 setTimeout(write_to_term, 12);
             }
-        }
-        ;
+        };
         write_to_term();
     });
 
-    div.keydown(function (event)
-    {
-	     var keycode = event.keyCode ? event.keyCode : event.which;
-       if (keycode === 8)
-       {
-	        event.preventDefault();
-	        keypress(keycode);
-	     }
+    div.addEventListener("keydown", function(event) {
+        var keycode = event.keyCode ? event.keyCode : event.which;
+        if (keycode === 8) {
+            event.preventDefault();
+            keypress(keycode);
+        } else if (keycode === 37) {
+            event.preventDefault();
+            keypress("left");
+        } else if (keycode === 38) {
+            event.preventDefault();
+            keypress("up");
+        } else if (keycode === 39) {
+            event.preventDefault();
+            keypress("right");
+        } else if (keycode === 40) {
+            event.preventDefault();
+            keypress("down");
+        } else if (keycode === 46) {
+            event.preventDefault();
+            keypress("del");
+        }
     });
 
-    div.keypress(function (event)
-    {
-       if (!event.ctrlKey)
-       {
-	         var keycode = event.keyCode ? event.keyCode : event.which;
-           keypress(keycode);
-	         if (keycode === 8)
-           {
-               event.preventDefault();
-	         }
-	     }
+    div.addEventListener("keypress", function(event) {
+        if (!event.ctrlKey) {
+             keypress(event.keyCode ? event.keyCode : event.which);
+        }
     });
 
     newline();
 
-    function get_line_height()
-    {
-        var line = $('<div style="visibility:hidden;">Test</div>');
+    function get_line_height() {
+        var line = document.createElement("div"); //$('<div style="visibility:hidden;">Test</div>');
+        line.style.visibility = "hidden";
+        line.innerHTML = "Test";
 
-        div.append(line);
-        var height = line.height();
+        div.appendChild(line);
+        var height = line.clientHeight;
         line.remove();
 
         return height;
@@ -107,10 +109,10 @@ function term(div, width, height, text_size, keypress)
 
     function reflow()
     {
-	// remove eol_element
-        if (eol_element !== undefined)
-        {
+        // remove eol_element
+        if (eol_element !== undefined) {
             eol_element.remove();
+            eol_element = undefined;
         }
 
         // recored all text in terminal
@@ -121,7 +123,7 @@ function term(div, width, height, text_size, keypress)
         {
             if (line_divs[line_div_itt] !== undefined)
             {
-                text += line_divs[line_div_itt].text();
+                text += line_divs[line_div_itt].innerHTML;
                 text += "\r\n";
             }
             line_div_itt = (line_div_itt + 1) % linebuffer_size;
@@ -130,118 +132,136 @@ function term(div, width, height, text_size, keypress)
 
         clear();
 
-        for (var i = 0; i < text.length; ++i)
-        { // re-write text
+        for (var i = 0; i < text.length; ++i) { // re-write text
             write(text.charCodeAt(i));
         }
     }
 
-    function resize(width, height)
-    {
-        div.width(width - (padding * 2));
-        div.height(height - (padding * 2));
-
-        if (resizing === 0)
-        {
-            resizing = 1;
-            setTimeout(function () {
-                resizing = 0;
-                reflow();
-            }, 100);
-        }
-    }
-
-    function delline(id)
-    {
+    function delline(id)  {
         line_divs[id].remove();
     }
 
-    function newline()
-    {
+    function newline() {
         // remove cursor
-        if (eol_element !== undefined)
-        {
+        if (eol_element !== undefined) {
             eol_element.remove();
         }
-	if (cursor_element !== undefined)
-	{
-	    cursor_element.css("text-decoration", "none");
-	}
+        if (cursor_element !== undefined) {
+            cursor_element.style.textDecoration = "none";
+        }
 
         // increment the itterator
         line_div_itt = (line_div_itt + 1) % linebuffer_size;
 
         // remove the last div if there are linebuffer_size divs
-        if (line_divs[line_div_itt] !== undefined)
-        {
+        if (line_divs[line_div_itt] !== undefined) {
             delline(line_div_itt);
         }
 
         // add the new div
-        var line_div = $('<div id="line_' + line_div_itt + '" style="min-height:' + line_height + 'px; white-space:pre-wrap; word-wrap:break-word; clear:left;"></div>');
+        var line_div = document.createElement("div");
+        line_div.id = "line_" + line_div_itt;
+        line_div.style.minHeight = line_height + "px";
+        line_div.style.whiteSpace = "pre-wrap";
+        line_div.style.wordWrap = "break-word";
+        line_div.style.clear = "left";
         line_divs[line_div_itt] = line_div;
-        div.append(line_div);
+        div.appendChild(line_div);
 
         // add eol/cursorelement
-        eol_element = $('<span id="term_eol" style="text-decoration:underline;">&nbsp;</span>');
-        line_div.append(eol_element);
-	cursor_element = eol_element;
+        eol_element = document.createElement("span");
+        eol_element.id = "term_eol";
+        eol_element.style.textDecoration = "underline";
+        eol_element.innerHTML = "&nbsp;";
+        line_div.appendChild(eol_element);
+        cursor_element = eol_element;
     }
 
-    function write(chr)
-    {
+    function write(chr) {
         var line = line_divs[line_div_itt];
-        var line_text = line.text();
+        var line_text = line.innerHTML;
 
-        switch (chr)
-        {
+        switch (chr) {
         case 0x0A: // line feed
             newline();
-	    line = line_divs[line_div_itt];
-            for (var i = 1; i < line.children().index(cursor_element); ++i)
-            {
-		var ws_element = $('<span>&nbsp;</span>');
-		line.prepend(ws_element);
+            line = line_divs[line_div_itt];
+            for (var i = 1,
+                l = Array.from(line.childNodes).indexOf(cursor_element); i < l;
+                ++i) {
+                var ws_element = document.createElement("span");
+                ws_element.innerHTML = "&nbsp;";
+                line.prepend(ws_element);
             }
-            div.scrollTop(div[0].scrollHeight); // keep the scrollbar at the bottom
             break;
         case 0x0D: // carriage return
-	    cursor_element.css("text-decoration", "none");
-            cursor_element = line.children().first();
-            cursor_element.css("text-decoration", "underline");
-	    break;
+        cursor_element.style.textDecoration = "none";
+            cursor_element = line.firstChild;
+            cursor_element.style.textDecoration = "underline";
+            break;
         case 0x08: // backspace
-            if (line.children().index(cursor_element) !== 0)
-            {
-		cursor_element.css("text-decoration", "none");
-		cursor_element = cursor_element.prev();
-		cursor_element.css("text-decoration", "underline");
+            if (cursor_element !== line.firstChild) {
+                var els = Array.from(line.childNodes);
+                cursor_element.style.textDecoration = "none";
+                cursor_element = els[els.indexOf(cursor_element) - 1];
+                cursor_element.style.textDecoration = "underline";
             }
             break;
         default:
-            var char_element = $('<span>' + String.fromCharCode(chr) + '</span>');
+            var char_element = document.createElement("span");
+            char_element.innerHTML = String.fromCharCode(chr);
             cursor_element.before(char_element);
-	    if (!cursor_element.is(eol_element))
-	    { // overwrite
-		cursor_element.remove();
-		cursor_element = char_element.next();
-		cursor_element.css("text-decoration", "underline");
-	    }
+            if (cursor_element !== eol_element) { // overwrite
+                var els = Array.from(line.childNodes);
+                cursor_element.remove();
+                cursor_element = els[els.indexOf(cursor_element) + 1];
+                cursor_element.style.textDecoration = "underline";
+            }
             break;
+        }
+        // keep the scrollbar at the bottom
+        div.scroll(0, div.scrollHeight);
+    }
+
+    function write_string(s) {
+        for (var i = 0, l = s.length; i < l; ++i) {
+            write(s.charCodeAt(i));
         }
     }
 
-    function clear()
-    {
-        div.text("");
+    function clear() {
+        div.innerHTML = "";
         line_div_itt = 0;
         line_divs = [];
         newline();
     }
 
+    function config(config) {
+        var configuring = false;
+        div.style.width = config["width"];
+        div.style.height = config["height"];
+        div.style.fontFamily = "'Courier New', Courier, monospace";
+        div.style.backgroundColor = config["backgroud-color"] || "#222222";
+        div.style.color = config["color"] || "#DADADA";
+        div.style.fontSize = config["font-size"] || "1rem";
+        div.style.whiteSpace = "nowrap";
+        div.style.overflowY = "scroll";
+        div.style.padding = config["padding"] || "6px";
+        div.tabIndex = config["tabindex"];
+
+        if (configuring === false) {
+            configuring = true;
+            setTimeout(function () {
+                configuring = false;
+                reflow();
+            }, 100);
+        }
+    }
+
     return {
         write: write,
+        write_string: write_string,
         clear: clear,
-        resize: resize
+        reflow: reflow,
+        config: config,
     };
 }
