@@ -19,19 +19,12 @@
 const TERM_DEF_CONFIG = {
     "width": "600px",
     "height": "360px",
-    "font_size": "1rem",
+    "font-size": "1rem",
     "padding": "6px",
     "tabindex": 0
-}
+};
 
 function term(div, keypress) {
-    // hack to make firefox enable paste event on non contenteditable div
-    /*var ff_paste_div = document.createElement("div");
-    ff_paste_div.id = "ff_paste_hack";
-    ff_paste_div.contentEditable = "True";
-    ff_paste_div.style.display = "none";
-    div.parentNode.insertBefore(ff_paste_div, div);*/
-
     var line_div_itt = 0;
     var line_divs = [];
     var linebuffer_size = 64;
@@ -39,11 +32,57 @@ function term(div, keypress) {
     var line_height = get_line_height();
 
     var resizing = 0;
+    var digi = 0;
 
     var cursor_element = undefined;
     var eol_element = undefined;
 
-    div.addEventListener("paste", function(event) {
+    var op_div = document.createElement("div");
+    op_div.style.margin = "0px";
+    op_div.style.padding = "0px";
+    op_div.style.width = "100%";
+    op_div.id = "term_output";
+    div.appendChild(op_div);
+
+    var ip_div = document.createElement("input");
+    ip_div.id = "term_input";
+    ip_div.setAttribute("type", "text");
+    ip_div.setAttribute("autocorrect", "off");
+    ip_div.setAttribute("autocapitalize", "none");
+    ip_div.style.position = "relative";
+    ip_div.style.padding = "0";
+    ip_div.style.border = "0";
+    ip_div.style.zIndex = "-1";
+    ip_div.style.height = "0px";
+    div.appendChild(ip_div);
+    ip_div.style.top = "-" + line_height + "px";
+
+    div.addEventListener("mouseup", function(event) {
+        var tpos = div.scrollTop;
+        var lpos = div.scrollLeft;
+        var sel = window.getSelection();
+        var range = undefined;
+        if (sel.rangeCount) {
+            range = sel.getRangeAt(0);
+            sel.removeAllRanges();
+        }
+        ip_div.focus();
+        div.scrollTo(lpos, tpos);
+        if (range !== undefined) {
+            console.log("ar " + range);
+            sel.addRange(range);
+        }
+    });
+
+    document.addEventListener('copy', function(event) {
+        var sel = window.getSelection();
+        if (sel.rangeCount) {
+            event.clipboardData.setData("text/plain", sel.toString());
+            console.log("coppied: " + sel.toString());
+        }
+    });
+
+    ip_div.addEventListener("paste", function(event) {
         var clipboard_data = event.clipboardData || window.clipboardData;
         var data = clipboard_data.getData('Text');
 
@@ -61,39 +100,62 @@ function term(div, keypress) {
         write_to_term();
     });
 
-    div.addEventListener("keydown", function(event) {
+    ip_div.addEventListener("keydown", function(event) {
+        /* Capture unprintables */
         var keycode = event.keyCode ? event.keyCode : event.which;
         if (keycode === 8) {
             event.preventDefault();
             keypress(keycode);
+        } else if (keycode === 13) {
+            event.preventDefault();
+            keypress(keycode);
         } else if (keycode === 37) {
             event.preventDefault();
-            keypress("left");
+            keypress(0x1b);
+            keypress("[".charCodeAt(0));
+            keypress("D".charCodeAt(0));
         } else if (keycode === 38) {
             event.preventDefault();
-            keypress("up");
+            keypress(0x1b);
+            keypress("[".charCodeAt(0));
+            keypress("A".charCodeAt(0));
         } else if (keycode === 39) {
             event.preventDefault();
-            keypress("right");
+            keypress(0x1b);
+            keypress("[".charCodeAt(0));
+            keypress("C".charCodeAt(0));
         } else if (keycode === 40) {
             event.preventDefault();
-            keypress("down");
+            keypress(0x1b);
+            keypress("[".charCodeAt(0));
+            keypress("B".charCodeAt(0));
         } else if (keycode === 46) {
             event.preventDefault();
-            keypress("del");
+            keypress(0x7f);
         }
     });
 
-    div.addEventListener("keypress", function(event) {
-        if (!event.ctrlKey) {
-             keypress(event.keyCode ? event.keyCode : event.which);
+    ip_div.addEventListener("input", function(event) {
+        var len = ip_div.value.length;
+        if (len < digi) {
+             keypress(8);
+             digi = len;
+        } else if (len) {
+            var c = ip_div.value.charCodeAt(len - 1);
+            keypress(c);
+            if ((c >= "0".charCodeAt(0)) && (c <= "9".charCodeAt(0))) {
+                ++digi;
+            } else {
+                ip_div.value = "";
+                digi = 0;
+            }
         }
     });
 
     newline();
 
     function get_line_height() {
-        var line = document.createElement("div"); //$('<div style="visibility:hidden;">Test</div>');
+        var line = document.createElement("div");
         line.style.visibility = "hidden";
         line.innerHTML = "Test";
 
@@ -120,7 +182,10 @@ function term(div, keypress) {
         {
             if (line_divs[line_div_itt] !== undefined)
             {
-                text += line_divs[line_div_itt].innerHTML;
+                var line_div = line_divs[line_div_itt];
+                for (var i = 0, l = line_div.children.length; i < l; ++i) {
+                    text += line_div.children[i].innerHTML;
+                }
                 text += "\r\n";
             }
             line_div_itt = (line_div_itt + 1) % linebuffer_size;
@@ -163,7 +228,7 @@ function term(div, keypress) {
         line_div.style.wordWrap = "break-word";
         line_div.style.clear = "left";
         line_divs[line_div_itt] = line_div;
-        div.appendChild(line_div);
+        op_div.appendChild(line_div);
 
         // add eol/cursorelement
         eol_element = document.createElement("span");
@@ -216,7 +281,7 @@ function term(div, keypress) {
             break;
         }
         // keep the scrollbar at the bottom
-        div.scroll(0, div.scrollHeight);
+        div.scroll(0, op_div.scrollHeight);
     }
 
     function write_string(s) {
@@ -226,7 +291,7 @@ function term(div, keypress) {
     }
 
     function clear() {
-        div.innerHTML = "";
+        op_div.innerHTML = "";
         line_div_itt = 0;
         line_divs = [];
         newline();
@@ -236,14 +301,14 @@ function term(div, keypress) {
         var configuring = false;
         div.style.width = config["width"];
         div.style.height = config["height"];
-        div.style.fontFamily = "'Courier New', Courier, monospace";
+        op_div.style.fontFamily = "'Courier New', Courier, monospace";
         div.style.backgroundColor = config["backgroud-color"] || "#222222";
-        div.style.color = config["color"] || "#DADADA";
-        div.style.fontSize = config["font-size"] || "1rem";
-        div.style.whiteSpace = "nowrap";
+        op_div.style.color = config["color"] || "#DADADA";
+        op_div.style.fontSize = config["font-size"] || "1rem";
+        op_div.style.whiteSpace = "nowrap";
         div.style.overflowY = "scroll";
         div.style.padding = config["padding"] || "6px";
-        div.tabIndex = config["tabindex"];
+        ip_div.tabIndex = config["tabindex"];
 
         if (configuring === false) {
             configuring = true;
@@ -259,6 +324,6 @@ function term(div, keypress) {
         write_string: write_string,
         clear: clear,
         reflow: reflow,
-        config: config,
+        config: config
     };
 }
