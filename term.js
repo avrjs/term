@@ -61,24 +61,81 @@ function term(div, keypress) {
         var tpos = div.scrollTop;
         var lpos = div.scrollLeft;
         var sel = window.getSelection();
-        var range = undefined;
-        if (sel.rangeCount) {
-            range = sel.getRangeAt(0);
+        if (sel.toString()) {
+            var range = sel.getRangeAt(0);
             sel.removeAllRanges();
-        }
-        ip_div.focus();
-        div.scrollTo(lpos, tpos);
-        if (range !== undefined) {
-            console.log("ar " + range);
             sel.addRange(range);
+        } else {
+            ip_div.focus();
+            div.scrollTo(lpos, tpos);
         }
     });
 
+    function keydown(event) {
+        /* Capture unprintables */
+        var keycode = event.keyCode ? event.keyCode : event.which;
+        if (keycode === 8) {
+            keypress(keycode);
+        } else if (keycode === 13) {
+            console.log("cr");
+            keypress(keycode);
+        } else if (keycode === 37) {
+            keypress(0x1b);
+            keypress("[".charCodeAt(0));
+            keypress("D".charCodeAt(0));
+        } else if (keycode === 38) {
+            keypress(0x1b);
+            keypress("[".charCodeAt(0));
+            keypress("A".charCodeAt(0));
+        } else if (keycode === 39) {
+            keypress(0x1b);
+            keypress("[".charCodeAt(0));
+            keypress("C".charCodeAt(0));
+        } else if (keycode === 40) {
+            keypress(0x1b);
+            keypress("[".charCodeAt(0));
+            keypress("B".charCodeAt(0));
+        } else if (keycode === 46) {
+            keypress(0x7f);
+        } else {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    div.addEventListener("keydown", function(event) {
+        if (!event.ctrlKey) {
+            ip_div.focus();
+            keydown(event);
+        }
+    });
+
+    op_div.addEventListener("keydown", function(event) {
+        if (!event.ctrlKey) {
+            ip_div.focus();
+            keydown(event);
+        }
+    });
+
+    // For Chrome ? TODO: Don't hijack the event listener for body
+    document.body.addEventListener("keydown", function(event) {
+        if (!event.ctrlKey) {
+            ip_div.focus();
+            keydown(event);
+        }
+    });
+
+    ip_div.addEventListener("keydown", function(event) {
+        keydown(event);
+    });
+
     document.addEventListener('copy', function(event) {
+        event.preventDefault();
         var sel = window.getSelection();
         if (sel.rangeCount) {
             event.clipboardData.setData("text/plain", sel.toString());
-            console.log("coppied: " + sel.toString());
+            event.clipboardData.setData("text/html", sel.toString());
         }
     });
 
@@ -100,45 +157,9 @@ function term(div, keypress) {
         write_to_term();
     });
 
-    ip_div.addEventListener("keydown", function(event) {
-        /* Capture unprintables */
-        var keycode = event.keyCode ? event.keyCode : event.which;
-        if (keycode === 8) {
-            event.preventDefault();
-            keypress(keycode);
-        } else if (keycode === 13) {
-            event.preventDefault();
-            keypress(keycode);
-        } else if (keycode === 37) {
-            event.preventDefault();
-            keypress(0x1b);
-            keypress("[".charCodeAt(0));
-            keypress("D".charCodeAt(0));
-        } else if (keycode === 38) {
-            event.preventDefault();
-            keypress(0x1b);
-            keypress("[".charCodeAt(0));
-            keypress("A".charCodeAt(0));
-        } else if (keycode === 39) {
-            event.preventDefault();
-            keypress(0x1b);
-            keypress("[".charCodeAt(0));
-            keypress("C".charCodeAt(0));
-        } else if (keycode === 40) {
-            event.preventDefault();
-            keypress(0x1b);
-            keypress("[".charCodeAt(0));
-            keypress("B".charCodeAt(0));
-        } else if (keycode === 46) {
-            event.preventDefault();
-            keypress(0x7f);
-        }
-    });
-
     ip_div.addEventListener("input", function(event) {
         var len = ip_div.value.length;
         if (len < digi) {
-             keypress(8);
              digi = len;
         } else if (len) {
             var c = ip_div.value.charCodeAt(len - 1);
