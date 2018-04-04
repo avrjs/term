@@ -22,6 +22,7 @@ function cli(cmd_cb) {
     var history = [];
     var hindex = 0;
     var tmp = "";
+    var esc = 0;
 
     function buf() {
         var buf = "";
@@ -47,7 +48,8 @@ function cli(cmd_cb) {
 
         function append(s) {
             buf = buf.substr(0, index) + s + buf.substr(index, buf.length);
-            t.write(buf.charCodeAt(index));
+            t.write_string(buf.substr(index, buf.length) +
+                "\b".repeat(buf.length - (index + 1)));
             ++index;
         }
 
@@ -125,22 +127,27 @@ function cli(cmd_cb) {
 
     function keypress(value) {
         // arrows
-        if (value === "up") {
-            b.up();
-            return;
-        } else if (value === "down") {
-            b.down();
-            return;
-        } else if (value === "left") {
-            b.left();
-            return;
-        } else if (value === "right") {
-            b.right();
-            return;
-        } else if (value === "del") {
-            b.deli();
-            return;
+        if (value === 0x1b) {
+            esc = 1;
+        } else if ((esc === 1) && (value === "[".charCodeAt(0)))  {
+            esc = 2;
+        } else if (esc === 2) {
+            if (value === "A".charCodeAt(0)) {
+                b.up();
+            } else if (value === "B".charCodeAt(0)) {
+                b.down();
+            } else if (value === "C".charCodeAt(0)) {
+                b.right();
+            } else if (value === "D".charCodeAt(0)) {
+                b.left();
+            }
+            esc = 0;
         } else {
+            esc = 0;
+            if (value === 0x7f) {
+                b.del();
+                return;
+            }
             var s = String.fromCharCode(value);
             if (s === "\r") {
                 var cmd = b.get_cmd();

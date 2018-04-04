@@ -16,13 +16,7 @@
 
 "use strict";
 
-const TERM_DEF_CONFIG = {
-    "width": "600px",
-    "height": "360px",
-    "font-size": "1rem",
-    "padding": "6px",
-    "tabindex": 0
-};
+const TERM_DEF_CONFIG = {};
 
 function term(div, keypress) {
     var line_div_itt = 0;
@@ -77,7 +71,6 @@ function term(div, keypress) {
         if (keycode === 8) {
             keypress(keycode);
         } else if (keycode === 13) {
-            console.log("cr");
             keypress(keycode);
         } else if (keycode === 37) {
             keypress(0x1b);
@@ -320,16 +313,11 @@ function term(div, keypress) {
 
     function config(config) {
         var configuring = false;
-        div.style.width = config["width"];
-        div.style.height = config["height"];
         op_div.style.fontFamily = "'Courier New', Courier, monospace";
-        div.style.backgroundColor = config["backgroud-color"] || "#222222";
-        op_div.style.color = config["color"] || "#DADADA";
-        op_div.style.fontSize = config["font-size"] || "1rem";
         op_div.style.whiteSpace = "nowrap";
         div.style.overflowY = "scroll";
-        div.style.padding = config["padding"] || "6px";
-        ip_div.tabIndex = config["tabindex"];
+        ip_div.tabIndex = config["tabindex"] || "0";
+        div.addEventListener("click", function(){void(0)}); // mobile safari
 
         if (configuring === false) {
             configuring = true;
