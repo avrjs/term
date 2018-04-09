@@ -55,11 +55,8 @@ function term(div, keypress) {
         var tpos = div.scrollTop;
         var lpos = div.scrollLeft;
         var sel = window.getSelection();
-        if (sel.toString()) {
-            var range = sel.getRangeAt(0);
-            sel.removeAllRanges();
-            sel.addRange(range);
-        } else {
+        if (!sel.toString()) {
+            // bring up virtual keyboard on mobile
             ip_div.focus();
             div.scrollTo(lpos, tpos);
         }
