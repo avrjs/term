@@ -26,7 +26,7 @@ function term(div, keypress) {
     var line_height = get_line_height();
 
     var resizing = 0;
-    var digi = 0;
+    var digi = "";
 
     var cursor_element = undefined;
     var eol_element = undefined;
@@ -48,6 +48,7 @@ function term(div, keypress) {
     ip_div.style.border = "0";
     ip_div.style.zIndex = "-1";
     ip_div.style.height = "0px";
+    ip_div.style.width = "0px";
     div.appendChild(ip_div);
     ip_div.style.top = "-" + line_height + "px";
 
@@ -108,14 +109,6 @@ function term(div, keypress) {
         }
     });
 
-    // For Chrome ? TODO: Don't hijack the event listener for body
-    document.body.addEventListener("keydown", function(event) {
-        if (!event.ctrlKey) {
-            ip_div.focus();
-            keydown(event);
-        }
-    });
-
     ip_div.addEventListener("keydown", function(event) {
         keydown(event);
     });
@@ -149,16 +142,25 @@ function term(div, keypress) {
 
     ip_div.addEventListener("input", function(event) {
         var len = ip_div.value.length;
-        if (len < digi) {
-             digi = len;
+        var val = ip_div.value;
+        if (len < digi.length) {
+             digi = val;
         } else if (len) {
-            var c = ip_div.value.charCodeAt(len - 1);
+            // remove the digi string from the input string
+            if (digi == val.slice(0, digi.length)) {
+                var c = ip_div.value.charCodeAt(digi.length);
+            } else if (digi == val.slice(len - digi.length)) {
+                var c = ip_div.value.charCodeAt(0);
+            } else {
+                console.log("Error: digi input");
+                return;
+            }
             keypress(c);
             if ((c >= "0".charCodeAt(0)) && (c <= "9".charCodeAt(0))) {
-                ++digi;
+                digi = ip_div.value;
             } else {
                 ip_div.value = "";
-                digi = 0;
+                digi = "";
             }
         }
     });
@@ -238,7 +240,14 @@ function term(div, keypress) {
         line_div.style.whiteSpace = "pre-wrap";
         line_div.style.wordWrap = "break-word";
         line_div.style.clear = "left";
+        line_div.addEventListener("keydown", function(event) {
+            if (!event.ctrlKey) {
+                ip_div.focus();
+                keydown(event);
+            }
+        });
         line_divs[line_div_itt] = line_div;
+
         op_div.appendChild(line_div);
 
         // add eol/cursorelement

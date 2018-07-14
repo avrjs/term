@@ -49,12 +49,12 @@ function cli(cmd_cb) {
         function append(s) {
             buf = buf.substr(0, index) + s + buf.substr(index, buf.length);
             t.write_string(buf.substr(index, buf.length) +
-                "\b".repeat(buf.length - (index + 1)));
+                "\b".repeat(buf.length - (index + s.length)));
             ++index;
         }
 
         function del() {
-            if (index <= buf.length) {
+            if (index < buf.length) {
                 t.write_string(buf.substr(index + 1, buf.length) + " " +
                     "\b".repeat(buf.length - index));
                 buf = buf.substr(0, index) + buf.substr(index + 1, buf.length);
@@ -62,7 +62,7 @@ function cli(cmd_cb) {
         }
 
         function bspc() {
-            if (index >= 0) {
+            if (index > 0) {
                 t.write_string("\b" + buf.substr(index, buf.length) + " \b" +
                     "\b".repeat(buf.length - index));
                 buf = buf.substr(0, index - 1) + buf.substr(index, buf.length);
@@ -71,14 +71,14 @@ function cli(cmd_cb) {
         }
 
         function left() {
-            if (index >= 0) {
+            if (index > 0) {
                 --index;
                 t.write_string("\b");
             }
         }
 
         function right() {
-            if (index <= buf.length) {
+            if (index < buf.length) {
                 t.write(buf.charCodeAt(index));
                 ++index;
             }
